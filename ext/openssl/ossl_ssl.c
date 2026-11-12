@@ -1472,6 +1472,12 @@ ossl_sslctx_add_certificate(int argc, VALUE *argv, VALUE self)
  *
  * Adds a certificate to this connection only. See
  * SSLContext#add_certificate for details.
+ *
+ * Any extra certificates previously set for the key type of _certificate_,
+ * including those inherited from the SSLContext, are replaced. If
+ * _extra_certs_ is omitted, no extra certificates are sent with
+ * _certificate_. SSLContext#add_certificate keeps the existing ones in that
+ * case.
  */
 static VALUE
 ossl_ssl_add_certificate(int argc, VALUE *argv, VALUE self)
@@ -1497,7 +1503,7 @@ ossl_ssl_add_certificate(int argc, VALUE *argv, VALUE self)
         sk_X509_pop_free(extra_chain, X509_free);
         ossl_raise(eSSLError, "SSL_use_PrivateKey");
     }
-    if (extra_chain && !SSL_set0_chain(ssl, extra_chain)) {
+    if (!SSL_set0_chain(ssl, extra_chain)) {
         sk_X509_pop_free(extra_chain, X509_free);
         ossl_raise(eSSLError, "SSL_set0_chain");
     }

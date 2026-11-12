@@ -321,6 +321,24 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
       }
     }
 
+    # The chain inherited from the SSLContext is not sent with the new
+    # certificate
+    server_proc = -> sock {
+      ctx = OpenSSL::SSL::SSLContext.new
+      ctx.add_certificate(@svr_cert, @svr_key, [@ca_cert])
+      ssl = OpenSSL::SSL::SSLSocket.new(sock, ctx)
+      ssl.add_certificate(@cli_cert, @cli_key)
+      ssl.accept
+      readwrite_loop(ssl)
+    }
+    start_server_proc(server_proc) { |port|
+      server_connect(port) { |ssl|
+        assert_equal [@cli_cert.subject], ssl.peer_cert_chain.map(&:subject)
+
+        ssl.puts "abc"; assert_equal "abc\n", ssl.gets
+      }
+    }
+
     # Invalid
     IO.pipe { |r, _w|
       ssl = OpenSSL::SSL::SSLSocket.new(r)
@@ -1187,7 +1205,8 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
 
   def test_servername_cb_add_certificate
     called = []
-    sctx = make_server_context
+    sctx = OpenSSL::SSL::SSLContext.new
+    sctx.add_certificate(@svr_cert, @svr_key, [@ca_cert])
     sctx.servername_cb = proc do |ssl, servername|
       called << servername
       ssl.add_certificate(@cli_cert, @cli_key)
@@ -1198,7 +1217,7 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
       ssl = OpenSSL::SSL::SSLSocket.new(sock)
       ssl.hostname = "example.org"
       ssl.connect
-      assert_equal(@cli_cert, ssl.peer_cert)
+      assert_equal([@cli_cert.subject], ssl.peer_cert_chain.map(&:subject))
       assert_equal(["example.org"], called)
       ssl.puts("abc"); ssl.gets
     ensure
