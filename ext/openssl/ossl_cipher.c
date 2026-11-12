@@ -11,10 +11,21 @@
 
 #define NewCipher(klass) \
     TypedData_Wrap_Struct((klass), &ossl_cipher_type, 0)
+/*
+ * Required for key wrap ciphers by OpenSSL 1.1.1 and LibreSSL. AWS-LC does not
+ * need it and deprecates EVP_CIPHER_CTX_set_flags().
+ */
+#if defined(OPENSSL_IS_AWSLC)
+# define ossl_cipher_allow_wrap(ctx) ((void)0)
+#else
+# define ossl_cipher_allow_wrap(ctx) \
+    EVP_CIPHER_CTX_set_flags((ctx), EVP_CIPHER_CTX_FLAG_WRAP_ALLOW)
+#endif
 #define AllocCipher(obj, ctx) do { \
     (ctx) = EVP_CIPHER_CTX_new(); \
     if (!(ctx)) \
         ossl_raise(rb_eRuntimeError, NULL); \
+    ossl_cipher_allow_wrap(ctx); \
     RTYPEDDATA_DATA(obj) = (ctx); \
 } while (0)
 #define GetCipher(obj, ctx) do { \
