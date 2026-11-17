@@ -60,6 +60,18 @@ class OpenSSL::TestPKey < OpenSSL::PKeyTestCase
     assert_not_equal nil, pkey.private_key
   end
 
+  def test_s_generate_key_with_block_raise
+    # RSA key generation ignores the callback result at some steps
+    called = 0
+    assert_raise_with_message(RuntimeError, "boom") {
+      OpenSSL::PKey.generate_key("RSA", "rsa_keygen_bits" => 2048) {
+        called += 1
+        raise "boom" if called == 1
+      }
+    }
+    assert_equal(1, called)
+  end
+
   def test_s_read_pem_unknown_block
     # A PEM-encoded certificate and a PEM-encoded private key are combined.
     # Check that OSSL_STORE doesn't stop after the first PEM block.
