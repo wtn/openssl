@@ -659,6 +659,7 @@ ossl_x509stctx_initialize(int argc, VALUE *argv, VALUE self)
         sk_X509_pop_free(x509s, X509_free);
         ossl_raise(eX509StoreError, "X509_STORE_CTX_init");
     }
+    rb_iv_set(self, "@store", store);
     rb_iv_set(self, "@verify_callback", rb_iv_get(store, "@verify_callback"));
     rb_iv_set(self, "@cert", cert);
 

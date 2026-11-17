@@ -202,6 +202,20 @@ class OpenSSL::TestX509Store < OpenSSL::TestCase
     end;
   end
 
+  def test_verify_store_kept_alive
+    assert_separately(["-ropenssl", "-rweakref"], <<~"end;")
+      ref = ctx = nil
+      Thread.new {
+        store = OpenSSL::X509::Store.new
+        ref = WeakRef.new(store)
+        ctx = OpenSSL::X509::StoreContext.new(store, OpenSSL::X509::Certificate.new)
+      }.join
+      GC.start
+      assert_equal(true, ref.weakref_alive?)
+      assert_equal(false, ctx.verify)
+    end;
+  end
+
   def test_verify_purpose
     ca_exts = [
       ["basicConstraints", "CA:TRUE", true],
