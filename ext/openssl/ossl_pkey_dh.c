@@ -77,7 +77,9 @@ ossl_dh_initialize(int argc, VALUE *argv, VALUE self)
 {
     EVP_PKEY *pkey;
     int type;
+#ifndef OSSL_HAVE_IMMUTABLE_PKEY
     DH *dh;
+#endif
     BIO *in = NULL;
     VALUE arg;
 
@@ -100,6 +102,7 @@ ossl_dh_initialize(int argc, VALUE *argv, VALUE self)
     arg = ossl_to_der_if_possible(arg);
     in = ossl_obj2bio(&arg);
 
+#ifndef OSSL_HAVE_IMMUTABLE_PKEY
     /*
      * On OpenSSL <= 1.1.1 and current versions of LibreSSL, the generic
      * routine does not support DER-encoded parameters
@@ -108,6 +111,7 @@ ossl_dh_initialize(int argc, VALUE *argv, VALUE self)
     if (dh)
         goto legacy;
     OSSL_BIO_reset(in);
+#endif
 
     pkey = ossl_pkey_read_generic(in, Qnil);
     BIO_free(in);
@@ -122,6 +126,7 @@ ossl_dh_initialize(int argc, VALUE *argv, VALUE self)
     RTYPEDDATA_DATA(self) = pkey;
     return self;
 
+#ifndef OSSL_HAVE_IMMUTABLE_PKEY
   legacy:
     BIO_free(in);
     pkey = EVP_PKEY_new();
@@ -132,6 +137,7 @@ ossl_dh_initialize(int argc, VALUE *argv, VALUE self)
     }
     RTYPEDDATA_DATA(self) = pkey;
     return self;
+#endif
 }
 
 #ifndef HAVE_EVP_PKEY_DUP

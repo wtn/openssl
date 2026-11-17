@@ -104,6 +104,7 @@ class OpenSSL::TestPKeyDH < OpenSSL::PKeyTestCase
     assert_no_key(public_key) #implies public_key.public? is false!
     assert_equal(dh.to_der, public_key.to_der)
     assert_equal(dh.to_pem, public_key.to_pem)
+    assert_raise(OpenSSL::PKey::PKeyError) { public_key.public_to_der }
   end
 
   def test_generate_key
