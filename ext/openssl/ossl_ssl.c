@@ -1992,10 +1992,12 @@ ossl_ssl_read(VALUE self, VALUE len, VALUE str)
     SSL *ssl;
     int ilen;
     VALUE cb_state;
+    rb_io_t *fptr;
 
     GetSSL(self, ssl);
     if (!ssl_started(ssl))
         rb_raise(eSSLError, "SSL session is not started yet");
+    GetOpenFile(rb_attr_get(self, id_i_io), fptr);
 
     ilen = NUM2INT(len);
     if (ilen < 0)
@@ -2063,10 +2065,12 @@ ossl_ssl_write(VALUE self, VALUE str)
 {
     SSL *ssl;
     VALUE cb_state;
+    rb_io_t *fptr;
 
     GetSSL(self, ssl);
     if (!ssl_started(ssl))
         rb_raise(eSSLError, "SSL session is not started yet");
+    GetOpenFile(rb_attr_get(self, id_i_io), fptr);
 
     str = rb_obj_as_string(str);
     /* SSL_write(3ssl) manpage states num == 0 is undefined */

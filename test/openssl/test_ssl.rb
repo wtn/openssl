@@ -1901,6 +1901,10 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
       ssl.connect
       ssl.puts "abc"; assert_equal "abc\n", ssl.gets
       sock.close
+      assert_raise(IOError) { ssl.syswrite("abc") }
+      assert_raise(IOError) { ssl.sysread(1) }
+      assert_raise(IOError) { ssl.write_nonblock("abc") }
+      assert_raise(IOError) { ssl.read_nonblock(1) }
       assert_nothing_raised do
         ssl.close
       end
