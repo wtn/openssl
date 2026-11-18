@@ -909,6 +909,9 @@ ossl_pkey_export_traditional(int argc, VALUE *argv, VALUE self, int to_der)
     rb_scan_args(argc, argv, "02", &cipher, &pass);
     if (!NIL_P(cipher)) {
         enc = ossl_evp_cipher_fetch(cipher, &cipher_holder);
+        /* The traditional PEM encryption cannot store the AEAD tag */
+        if (EVP_CIPHER_flags(enc) & EVP_CIPH_FLAG_AEAD_CIPHER)
+            ossl_raise(ePKeyError, "AEAD ciphers are not supported");
         pass = ossl_pem_passwd_value(pass);
     }
 

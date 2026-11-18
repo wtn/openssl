@@ -438,6 +438,16 @@ class OpenSSL::TestPKeyRSA < OpenSSL::PKeyTestCase
     }
   end
 
+  def test_export_aead_cipher
+    key = Fixtures.pkey("rsa-1")
+    assert_raise(OpenSSL::PKey::PKeyError) {
+      key.to_pem("aes-128-gcm", "key")
+    }
+    assert_raise(OpenSSL::PKey::PKeyError) {
+      key.to_pem(OpenSSL::Cipher.new("aes-128-gcm"), "key")
+    }
+  end
+
   def test_private_encoding
     pkey = Fixtures.pkey("rsa-1")
     asn1 = OpenSSL::ASN1::Sequence([
