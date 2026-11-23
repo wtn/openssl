@@ -1826,12 +1826,28 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
       sctx = make_server_context
       sctx.alpn_select_cb = -> (protocols) { nil }
       ssl = OpenSSL::SSL::SSLSocket.new(sock, sctx)
-      assert_raise_with_message(TypeError, /nil/) { ssl.accept }
+      assert_raise(OpenSSL::SSL::SSLError) { ssl.accept }
     end
     start_server_proc(server_proc) do |port|
       ctx = OpenSSL::SSL::SSLContext.new
       ctx.alpn_protocols = ["http/1.1"]
       # no_application_protocol alert
+      assert_raise_with_message(OpenSSL::SSL::SSLError, /alert number 120/) {
+        server_connect(port, ctx) { }
+      }
+    end
+  end
+
+  def test_alpn_protocol_selection_invalid_type
+    server_proc = proc do |sock|
+      sctx = make_server_context
+      sctx.alpn_select_cb = -> (protocols) { 1 }
+      ssl = OpenSSL::SSL::SSLSocket.new(sock, sctx)
+      assert_raise(TypeError) { ssl.accept }
+    end
+    start_server_proc(server_proc) do |port|
+      ctx = OpenSSL::SSL::SSLContext.new
+      ctx.alpn_protocols = ["http/1.1"]
       assert_raise_with_message(OpenSSL::SSL::SSLError, /alert number 120/) {
         server_connect(port, ctx) { }
       }
@@ -1895,6 +1911,20 @@ class OpenSSL::TestSSL < OpenSSL::SSLTestCase
       ctx.max_version = :TLS1_2
       ctx.npn_select_cb = -> (protocols) { raise RuntimeError.new }
       assert_raise(RuntimeError) { server_connect(port, ctx) }
+    }
+  end
+
+  def test_npn_protocol_selection_nil
+    return unless OpenSSL::SSL::SSLContext.method_defined?(:npn_select_cb)
+
+    sctx = make_server_context
+    sctx.npn_protocols = ["http/1.1"]
+
+    start_server(sctx, ignore_listener_error: true) { |port|
+      ctx = OpenSSL::SSL::SSLContext.new
+      ctx.max_version = :TLS1_2
+      ctx.npn_select_cb = -> (protocols) { nil }
+      assert_raise(OpenSSL::SSL::SSLError) { server_connect(port, ctx) }
     }
   end
 

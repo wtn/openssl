@@ -544,6 +544,8 @@ npn_select_cb_common_i(VALUE tmp)
     }
 
     selected = rb_funcallv(args->cb, id_call, 1, &protocols);
+    if (NIL_P(selected))
+        return Qnil;
     StringValue(selected);
     len = RSTRING_LEN(selected);
     if (len < 1 || len >= 256) {
@@ -573,6 +575,8 @@ ssl_npn_select_cb_common(SSL *ssl, VALUE cb, const unsigned char **out,
         rb_ivar_set(ssl_obj, ID_callback_state, INT2NUM(status));
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
+    if (NIL_P(selected))
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
 
     *out = (unsigned char *)RSTRING_PTR(selected);
     *outlen = (unsigned char)RSTRING_LEN(selected);
@@ -2894,10 +2898,10 @@ Init_ossl_ssl(void)
      * A callback invoked on the client side when the client needs to select
      * a protocol from the list sent by the server. Supported in OpenSSL 1.0.1
      * and higher. The client MUST select a protocol of those advertised by
-     * the server. If none is acceptable, raising an error in the callback
-     * will cause the handshake to fail. Not setting this callback explicitly
-     * means not supporting the NPN extension on the client - any protocols
-     * advertised by the server will be ignored.
+     * the server. If none is acceptable, returning +nil+ or raising an error
+     * in the callback will cause the handshake to fail. Not setting this
+     * callback explicitly means not supporting the NPN extension on the
+     * client - any protocols advertised by the server will be ignored.
      *
      * === Example
      *
@@ -2925,10 +2929,10 @@ Init_ossl_ssl(void)
      * A callback invoked on the server side when the server needs to select
      * a protocol from the list sent by the client. Supported in OpenSSL 1.0.2
      * and higher. The callback must return a protocol of those advertised by
-     * the client. If none is acceptable, raising an error in the callback
-     * will cause the handshake to fail. Not setting this callback explicitly
-     * means not supporting the ALPN extension on the server - any protocols
-     * advertised by the client will be ignored.
+     * the client. If none is acceptable, returning +nil+ or raising an error
+     * in the callback will cause the handshake to fail. Not setting this
+     * callback explicitly means not supporting the ALPN extension on the
+     * server - any protocols advertised by the client will be ignored.
      *
      * === Example
      *
